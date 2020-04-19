@@ -5,9 +5,12 @@ from multiprocessing.pool import Pool
 # ------------------------------------------------------------------------------------------------------------------------
 # ICM模块测试
 population = np.array([[505680.248, 2497248.282, 0.5, 1000], [505680.248, 2497248.282, 0.5, 1000]])
-test = InfoWorks(population, "2020-03-31 00:00:00", "2020-04-03 00:00:00", "4.7_model", "3.31-4.03", plot=False)
+test = InfoWorks(population, start="2020-03-31 00:00:00", end="2020-04-03 00:00:00",
+                 network="4.7_model", run_template="3.31-4.03",
+                 obs_folder='MH52_0.5_1000', plot=False)
 icm_energies, valid_random_num = test.solve()
 print(icm_energies)
+
 
 # ------------------------------------------------------------------------------------------------------------------------
 # 耦合测试
@@ -51,7 +54,9 @@ if __name__ == '__main__':
     func = _FunctionWrapper(run_bat, args)
 
     population = np.array([[505680.248, 2497248.282, 0.5, 1000], [505680.248, 2497248.282, 0.5, 1000]])
-    test = InfoWorks(population, "2020-03-31 00:00:00", "2020-04-03 00:00:00", "4.7_model", "3.31-4.03", plot=False)
+    test = InfoWorks(population, start="2020-03-31 00:00:00", end="2020-04-03 00:00:00",
+                     network="4.7_model", run_template="3.31-4.03",
+                     obs_folder='MH52_0.5_1000', plot=False)
     icm_energies, valid_random_num = test.solve()
     print(icm_energies)
 
