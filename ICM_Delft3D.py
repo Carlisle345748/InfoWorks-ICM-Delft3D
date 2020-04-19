@@ -304,6 +304,9 @@ if __name__ == '__main__':
     R_TIME = "2020-03-31 00:00:00"  # 注意reference time总是00:00:00
     START, END = "2020-03-31 00:00:00", "2020-04-03 00:00:00"
     YJ_SET = ['1', '10', '5', '9', '8', '6', '12', '11']
+    NETWORK = "4.7_model"
+    OBS_FOLDER = 'MH52_0.5_1000.0'
+    RUN_TEMPLATE = "3.31-4.03"
 
     # 运行脚本生成河流边界的时间序列，第一次运行需要运行这个！！！！！！
     os.system("C:/Users/Carlisle/Anaconda3/python.exe Delft3D_时间序列.py {} {} {}".format(R_TIME, START, END))
@@ -313,7 +316,7 @@ if __name__ == '__main__':
     yj_initial_data = yj_initial.get_valid_and_resample_data(START, END, filter_type='2', stack=True)
 
     # 读取观测值
-    obs_his = nc.Dataset("obs/trih-river.nc")  # 读取数据库
+    obs_his = nc.Dataset("obs/{}/trih-river.nc".format(OBS_FOLDER))  # 读取数据库
     time_delta = obs_his.variables['time'][:]  # 读取相对时间
     obs_cond = obs_his.variables['GRO'][:]  # 读取污染物浓度
     obs_water_level = obs_his.variables['ZWL'][:]  # 读取水位
@@ -359,9 +362,9 @@ if __name__ == '__main__':
             f.write(line)
     # 运行算法
     bounds = [(505465, 506557), (2496786, 2497709), (0, 1), (300, 2000)]
-    result = differential_evolution(run_bat, start=START, end=END, network="4.7_model",
-                                    run_template="3.31-4.03", bounds=bounds,
-                                    updating='deferred', workers=30, tol=0.0001,
+    result = differential_evolution(run_bat, start=START, end=END, network=NETWORK,
+                                    run_template=RUN_TEMPLATE, obs_folder=OBS_FOLDER,
+                                    bounds=bounds, updating='deferred', workers=30, tol=0.0001,
                                     args=(obs, MDF_NAME, R_TIME, START, END), disp=True)
     print(result)
 
