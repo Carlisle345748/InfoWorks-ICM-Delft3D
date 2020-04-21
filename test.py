@@ -1,68 +1,90 @@
 from ICM import *
+from Delft3D import *
 from ICM_Delft3D import *
 from multiprocessing.pool import Pool
 
-# ------------------------------------------------------------------------------------------------------------------------
-# ICM模块测试
-population = np.array([[505680.248, 2497248.282, 0.5, 1000], [505680.248, 2497248.282, 0.5, 1000]])
-test = InfoWorks(population, start="2020-03-31 00:00:00", end="2020-04-03 00:00:00",
-                 network="4.7_model", run_template="3.31-4.03",
-                 obs_folder='MH52_0.5_1000', plot=False)
-icm_energies, valid_random_num = test.solve()
-print(icm_energies)
-
-
-# ------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # 耦合测试
-class _FunctionWrapper(object):
-    """
-    Object to wrap user cost function, allowing picklability
-    """
+if __name__ == "__maim__":
 
-    def __init__(self, f, args):
-        self.f = f
-        self.args = [] if args is None else args
-
-    def __call__(self, x):
-        return self.f(x, *self.args)
-
-
-if __name__ == '__main__':
-    MDF_NAME = 'river'
-    R_TIME = "2020-03-31 00:00:00"  # 注意reference time总是00:00:00
+    # 模拟参数
+    R_TIME = "2020-03-31 00:00:00"
     START, END = "2020-03-31 00:00:00", "2020-04-03 00:00:00"
-    YJ_SET = ['1', '10', '5', '9', '8', '6', '12', '11']
+    NETWORK = "4.7_model"
+    RUN_TEMPLATE = "3.31-4.03"
+    OBS_FOLDER = "MH52_0.5_1000.0"
+    MDF_NAME = "river"
+    DIS_NAME = "river"
+    SRC_NAME = "river"
 
-    obs_his = nc.Dataset("obs/trih-river.nc")  # 读取数据库
-    time_delta = obs_his.variables['time'][:]  # 读取相对时间
-    obs_cond = obs_his.variables['GRO'][:]  # 读取污染物浓度
-    obs_water_level = obs_his.variables['ZWL'][:]  # 读取水位
-    obs_his.close()  # 读取完一定要关闭数据库，不然下个循环会继续占用数据库文件，导致模型无法运行
-    # 相对时间转换为绝对时间
-    obs_time = pd.Series(np.ones(len(time_delta)))
-    for i in range(len(time_delta)):
-        obs_time[i] = pd.to_datetime(R_TIME) + pd.to_timedelta(time_delta[i], unit='sec')
-    # 将数据变成DataFrame，以时间为index，准备用于merge
-    obs_water_level_pd, obs_cond_pd = {}, {}
-    for i in range(obs_water_level.shape[1]):
-        obs_cond_pd[YJ_SET[i]] = pd.Series(obs_cond[:, 0, 0, i], index=obs_time, dtype=np.float64, name='cond')
-        obs_water_level_pd[YJ_SET[i]] = pd.Series(obs_water_level[:, i], index=obs_time,
-                                                  dtype=np.float64, name='water level')
-    obs = {'water level': obs_water_level_pd, 'cond': obs_cond_pd}  # 整合观测值
-
-    args = (obs, MDF_NAME, R_TIME, START, END)
-    func = _FunctionWrapper(run_bat, args)
-
-    population = np.array([[505680.248, 2497248.282, 0.5, 1000], [505680.248, 2497248.282, 0.5, 1000]])
-    test = InfoWorks(population, start="2020-03-31 00:00:00", end="2020-04-03 00:00:00",
-                     network="4.7_model", run_template="3.31-4.03",
-                     obs_folder='MH52_0.5_1000', plot=False)
-    icm_energies, valid_random_num = test.solve()
+    # ICM模块测试
+    population = np.array([[505680.248, 2497248.282, 0.5, 1000],
+                           [505680.248, 2497248.282, 0.5, 1000]])
+    icm_test = InfoWorks(population, start=START, end=END,
+                         network=NETWORK, run_template=RUN_TEMPLATE,
+                         obs_folder=OBS_FOLDER, plot=False)
+    icm_energies, valid_random_num = icm_test.solve()
     print(icm_energies)
 
+    # Delft3D模块测试
+    delft3d_test = Delft3D(reference_time=R_TIME, start=START, end=END,
+                           mdf_name=MDF_NAME,  dis_name=DIS_NAME,
+                           src_name=SRC_NAME, obs_folder=OBS_FOLDER)
     pool = Pool(processes=2)
-    hh = pool.map(func, valid_random_num)
-    print(hh)
+    delft3d_energies = pool.map(delft3d_test.solve, valid_random_num)
+    print(delft3d_energies)
+
+# ----------------------------------------------------------------------------------------------------------------------
+# 耦合测试
+# class _FunctionWrapper(object):
+#     """
+#     Object to wrap user cost function, allowing picklability
+#     """
+#
+#     def __init__(self, f, args):
+#         self.f = f
+#         self.args = [] if args is None else args
+#
+#     def __call__(self, x):
+#         return self.f(x, *self.args)
+#
+#
+# if __name__ == '__main__':
+#     MDF_NAME = 'river'
+#     R_TIME = "2020-03-31 00:00:00"  # 注意reference time总是00:00:00
+#     START, END = "2020-03-31 00:00:00", "2020-04-03 00:00:00"
+#     YJ_SET = ['1', '10', '5', '9', '8', '6', '12', '11']
+#
+#     obs_his = nc.Dataset("obs/trih-river.nc")  # 读取数据库
+#     time_delta = obs_his.variables['time'][:]  # 读取相对时间
+#     obs_cond = obs_his.variables['GRO'][:]  # 读取污染物浓度
+#     obs_water_level = obs_his.variables['ZWL'][:]  # 读取水位
+#     obs_his.close()  # 读取完一定要关闭数据库，不然下个循环会继续占用数据库文件，导致模型无法运行
+#     # 相对时间转换为绝对时间
+#     obs_time = pd.Series(np.ones(len(time_delta)))
+#     for i in range(len(time_delta)):
+#         obs_time[i] = pd.to_datetime(R_TIME) + pd.to_timedelta(time_delta[i], unit='sec')
+#     # 将数据变成DataFrame，以时间为index，准备用于merge
+#     obs_water_level_pd, obs_cond_pd = {}, {}
+#     for i in range(obs_water_level.shape[1]):
+#         obs_cond_pd[YJ_SET[i]] = pd.Series(obs_cond[:, 0, 0, i], index=obs_time, dtype=np.float64, name='cond')
+#         obs_water_level_pd[YJ_SET[i]] = pd.Series(obs_water_level[:, i], index=obs_time,
+#                                                   dtype=np.float64, name='water level')
+#     obs = {'water level': obs_water_level_pd, 'cond': obs_cond_pd}  # 整合观测值
+#
+#     args = (obs, MDF_NAME, R_TIME, START, END)
+#     func = _FunctionWrapper(run_bat, args)
+#
+#     population = np.array([[505680.248, 2497248.282, 0.5, 1000], [505680.248, 2497248.282, 0.5, 1000]])
+#     test = InfoWorks(population, start="2020-03-31 00:00:00", end="2020-04-03 00:00:00",
+#                      network="4.7_model", run_template="3.31-4.03",
+#                      obs_folder='MH52_0.5_1000', plot=False)
+#     icm_energies, valid_random_num = test.solve()
+#     print(icm_energies)
+#
+#     pool = Pool(processes=2)
+#     hh = pool.map(func, valid_random_num)
+#     print(hh)
 
 # ------------------------------------------------------------------------------------------------------------------------
 # 调试单个结果文件

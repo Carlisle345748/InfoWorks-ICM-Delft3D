@@ -8,7 +8,6 @@ from func import nse, edit_mdf_parm, monitors, bulk_insert
 
 
 def run_bat(pm, obs_data, mdf_name, reference_time, start, end):
-    # 将pm中污染源格栅坐标的小数转换为整数
     if pm == -1:
         return 9999999999  # 若无效位置，则直接返回无效值
     else:
