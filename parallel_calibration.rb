@@ -123,6 +123,7 @@ while sim_running
             sim_status[i] = 1  # 标记为导出
             completed_sim = completed_sim + 1
             puts "已完成#{completed_sim}个模拟"
+            sleep 0.01
         end
         # 失败重新运行
         if simsArray[i].status == "Fail" and sim_retry[i] <= 3  # 失败且重试次数小于3

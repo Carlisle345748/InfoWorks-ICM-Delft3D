@@ -1,28 +1,36 @@
-from ICM import *
-from Delft3D import *
-from ICM_Delft3D import *
+import configparser
 from multiprocessing.pool import Pool
+
+from Delft3D import *
+from ICM import *
 
 # ----------------------------------------------------------------------------------------------------------------------
 # 耦合测试
 if __name__ == "__maim__":
+    cf = configparser.ConfigParser()
+    cf.read("config.ini")
 
+    R_TIME = cf.get("General", "reference_time")  # 注意reference time总是00:00:00
+    START = cf.get("General", "start")
+    END = cf.get("General", "end")
+    RUN_TEMPLATE = cf.get("InfoWorks", "run_template")
+    SOURCE_TYPE = cf.get("General", "source_type")
+    MDF_NAME = cf.get("Delft3D", "mdf_name")
+    DIS_NAME = cf.get("Delft3D", "dis_name")
+    SRC_NAME = cf.get("Delft3D", "src_name")
+    NETWORK = cf.get("InfoWorks", "network")
+    OBS_FOLDER = cf.get("General", "obs_folder")
     # 模拟参数
-    R_TIME = "2020-03-31 00:00:00"
-    START, END = "2020-03-31 00:00:00", "2020-04-03 00:00:00"
-    NETWORK = "4.7_model"
-    RUN_TEMPLATE = "3.31-4.03"
-    OBS_FOLDER = "MH52_0.5_1000.0"
-    MDF_NAME = "river"
-    DIS_NAME = "river"
-    SRC_NAME = "river"
 
     # ICM模块测试
-    population = np.array([[505680.248, 2497248.282, 0.5, 1000],
-                           [505680.248, 2497248.282, 0.5, 1000]])
+    # population = np.array([[505680.248, 2497248.282, 0.5, 1000],
+    #                        [505680.248, 2497248.282, 0.5, 1000]])
+    population = np.array([[505680.248, 2497248.282, 0.5, 1000, 144],
+                           [505680.248, 2497248.282, 0.5, 1000, 144]])
     icm_test = InfoWorks(population, start=START, end=END,
                          network=NETWORK, run_template=RUN_TEMPLATE,
                          obs_folder=OBS_FOLDER, plot=False)
+
     icm_energies, valid_random_num = icm_test.solve()
     print(icm_energies)
 
