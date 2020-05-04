@@ -1,0 +1,15 @@
+!Version=1,type=PIN,encoding=MBCS,,,,,,,,,,,,,,,,
+FILECONT, TITLE,,,,,,,,,,,,,,,,,
+NHD,1,,,,,,,,,,,,,,,,,
+UserSettings,U_VALUES,U_DATETIME,,,,,,,,,,,,,,,,
+UserSettingsValues,mg/l,yyyy-mm-dd hh:mm,,,,,,,,,,,,,,,,
+G_START,G_TS,G_NPROFILES,,,,,,,,,,,,,,,,
+2020/1/23 9:00,600,6,,,,,,,,,,,,,,,,
+L_ID,L_SFNAME1,L_POTENCYFACTOR1,L_SFNAME2,L_POTENCYFACTOR2,L_SFNAME3,L_POTENCYFACTOR3,L_SFNAME4,L_POTENCYFACTOR4,L_SFNAME5,L_POTENCYFACTOR5,L_SFNAME6,L_POTENCYFACTOR6,L_SFNAME7,L_POTENCYFACTOR7,L_SFNAME8,L_POTENCYFACTOR8,L_SFNAME9,L_POTENCYFACTOR9
+OF1,,0,,0,,0,,0,,0,,0,,0,,0,,0
+OF2,,0,,0,,0,,0,,0,,0,,0,,0,,0
+OF3,,0,,0,,0,,0,,0,,0,,0,,0,,0
+OF4,,0,,0,,0,,0,,0,,0,,0,,0,,0
+OF5,,0,,0,,0,,0,,0,,0,,0,,0,,0
+MH51,,0,,0,,0,,0,,0,,0,,0,,0,,0
+P_DATETIME,1,2,3,4,5,6,,,,,,,,,,,,

@@ -3,7 +3,7 @@ require 'csv'
 
 # 新建数组，存放random.csv中储存的随机数
 random_num = Array.new
-CSV.read('valid_random_num.csv', headers:false).each do |row|
+CSV.read('icm_model_data/valid_random_num.csv', headers:false).each do |row|
     random_num << row
 end
 
@@ -39,7 +39,7 @@ on = net.open  # 提取Network中的OpenNetwork才可以操作Scenario和执行V
 
 # 导入水位曲线
 leve_group.import_new_model_object('Level', "icm_level_#{input_num}", 'CSV',
-    "C:/Users/Carlisle/iCloudDrive/Graduate_Program/ICM-Delft3D/icm_level.csv", 0)
+    "C:/Users/Carlisle/iCloudDrive/Graduate_Program/ICM-Delft3D/icm_model_data/icm_level.csv", 0)
 icm_level = db.model_object(">MODG~Graduate Project>MODG~level>LEV~icm_level_#{input_num}")
 icm_level_id = icm_level.id
 
@@ -123,6 +123,7 @@ while sim_running
             sim_status[i] = 1  # 标记为导出
             completed_sim = completed_sim + 1
             puts "已完成#{completed_sim}个模拟"
+            sleep 0.01
         end
         # 失败重新运行
         if simsArray[i].status == "Fail" and sim_retry[i] <= 3  # 失败且重试次数小于3
