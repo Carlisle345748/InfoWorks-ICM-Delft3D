@@ -23,13 +23,11 @@ __all__ = ['differential_evolution']
 _MACHEPS = np.finfo(np.float64).eps
 
 
-def differential_evolution(func, bounds, start, end, network, run_template,
-                           obs_folder ,args=(), strategy='best1bin',
-                           maxiter=1000, popsize=15, tol=0.01,
-                           mutation=(0.5, 1), recombination=0.7, seed=None,
-                           callback=None, disp=False, polish=False,
-                           init='latinhypercube', atol=0, updating='deferred',
-                           workers=1):
+def differential_evolution(func, bounds, config, args=(), strategy='best1bin',
+                           maxiter=1000, popsize=15, tol=0.01, mutation=(0.5, 1),
+                           recombination=0.7, seed=None, callback=None, disp=False,
+                           polish=False, init='latinhypercube', atol=0,
+                           updating='deferred', workers=1):
     """Finds the global minimum of a multivariate function.
 
     Differential Evolution is stochastic in nature (does not use gradient
@@ -269,10 +267,7 @@ def differential_evolution(func, bounds, start, end, network, run_template,
     # using a context manager means that any created Pool objects are
     # cleared up.
     with DifferentialEvolutionSolver(func, bounds, args=args,
-                                     start=start, end=end,
-                                     network=network, 
-                                     run_template=run_template,
-                                     obs_folder= obs_folder,
+                                     config = config,
                                      strategy=strategy,
                                      maxiter=maxiter,
                                      popsize=popsize, tol=tol,
@@ -442,18 +437,13 @@ class DifferentialEvolutionSolver(object):
                         "'latinhypercube' or 'random', or an array of shape "
                         "(M, N) where N is the number of parameters and M>5")
 
-    def __init__(self, func, bounds, start, end, network, run_template,
-                 obs_folder, args=(), strategy='best1bin', maxiter=1000,
-                 popsize=15, tol=0.01, mutation=(0.5, 1), recombination=0.7,
-                 seed=None, maxfun=np.inf, callback=None, disp=False,
-                 polish=True, init='latinhypercube', atol=0,
+    def __init__(self, func, bounds, config, args=(), strategy='best1bin',
+                 maxiter=1000, popsize=15, tol=0.01, mutation=(0.5, 1),
+                 recombination=0.7, seed=None, maxfun=np.inf, callback=None,
+                 disp=False, polish=True, init='latinhypercube', atol=0,
                  updating='immediate', workers=1):
         
-        self.start = start
-        self.end = end
-        self.network = network
-        self.obs_folder = obs_folder
-        self.run_template = run_template
+        self.config = config
         
         if strategy in self._binomial:
             self.mutation_func = getattr(self, self._binomial[strategy])
@@ -809,17 +799,15 @@ class DifferentialEvolutionSolver(object):
 
         parameters_pop = self._scale_parameters(population)
         print("ICM开始运行")
-        icm = InfoWorks(population=parameters_pop, start=self.start, end=self.end,
-                        network=self.network, run_template=self.run_template,
-                        obs_folder=self.obs_folder, plot=False)
+        icm = InfoWorks(population=parameters_pop, config=self.config)
         icm_energies, valid_random_num = icm.solve()
         print("ICM运行结束")
-        print(icm_energies)
 
         try:
             calc_energies = list(self._mapwrapper(self.func,
                                                   valid_random_num[0:nfevs]))
             energies[0:nfevs] = (calc_energies + icm_energies) / 2
+            print("f(x):")
             print(energies[0:nfevs])
         except (TypeError, ValueError):
             # wrong number of arguments for _mapwrapper
