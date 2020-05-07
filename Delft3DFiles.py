@@ -1,13 +1,16 @@
 import re
 import os
+import numpy as np
 import pandas as pd
 
 
-class Delft3DTimeSeries(object):
+# TODO 补充注释
+class TimeSeriesFile(object):
+    """Delft3D bct/bcc/dis file"""
     def __init__(self, filename):
         self.type = os.path.splitext(filename)[1][1:]
         self.filename = filename
-        self.bct_data = self.load_bct()
+        self.data = self.load_bct()
 
     def load_bct(self):
         with open(self.filename) as f:
@@ -28,14 +31,14 @@ class Delft3DTimeSeries(object):
         return time_series
 
     def set_header(self, num: int, data: dict, unit=False):
-        self.bct_data[num].set_header(data, unit)
+        self.data[num].set_header(data, unit)
 
     def set_time_series(self, num, reference_time, data1, data2):
-        self.bct_data[num].set_time_series(reference_time, data1, data2)
+        self.data[num].set_time_series(reference_time, data1, data2)
 
     def export(self):
         bct_data = []
-        for time_series in self.bct_data:
+        for time_series in self.data:
             bct_data += time_series.export()
         return bct_data
 
@@ -186,3 +189,104 @@ class Parameter(object):
             return "{} unit={}".format(self.value, self.unit)
         else:
             return "{}".format(self.value)
+
+
+class MdfFile(object):
+    def __init__(self, filename):
+        self.filename = filename
+        self.data = self.load_mdf()
+
+    def load_mdf(self):
+        with open(self.filename, 'r') as f:
+            mdf_data = f.readlines()
+        mdf_dict = {}
+        multi_lines_parm = None
+        for index, line in enumerate(mdf_data):
+            matches = re.search(r'^([\w]+)\s*=\s*([\w .#+-:\[\]]*)$', line)
+            if matches is not None and matches[1] != 'Commnt':
+                multi_lines_parm = matches[1]
+                if '#' in matches[2] and '[' not in matches[2]:
+                    mdf_dict[matches[1]] = matches[2].rstrip(' ')
+                    mdf_dict[matches[1]] = mdf_dict[matches[1]].replace('#', '')
+                elif '[' in matches[2]:
+                    mdf_dict[matches[1]] = matches[2]
+                else:
+                    num = [float(x) for x in matches[2].split()]
+
+                    mdf_dict[matches[1]] = np.array(num) if len(num) > 1 else num[0]
+            elif matches is None:
+                matches = re.search(r'^\s+(.*)$', line)
+                parm = mdf_dict.get(multi_lines_parm)
+                if '#' in line:
+                    parm = parm if type(parm) == list else [parm]
+                    parm.append(matches[1].replace('#', ''))
+                else:
+                    parm = np.array(parm).reshape(-1, 1)
+                    parm = np.append(parm, np.array(float(matches[1])).reshape(1, 1), axis=0)
+                mdf_dict[multi_lines_parm] = parm
+
+        return mdf_dict
+
+    def set_parm(self, data: dict):
+        for key, value in data.items():
+            if type(self.data[key]) in [float, int]:
+                self.data[key] = float(value)
+            elif type(self.data[key]) == np.ndarray:
+                self.data[key] = np.array(value)
+            else:
+                self.data[key] = str(value)
+
+    def export(self):
+        mdf_file = []
+        int_key = ['MNKmax', 'Ktemp', 'Ivapop', 'Irov', 'Iter']
+        for key, content in self.data.items():
+            if type(content) == np.ndarray and len(content.shape) > 1:
+                for index, arr in enumerate(content):
+                    arr = int(arr[0]) if key in int_key else float(arr[0])
+                    if index == 0:
+                        if key in int_key:
+                            mdf_file.append("{} = {}\n".format(key.ljust(6), arr))
+                        else:
+                            mdf_file.append("{} = {:.7e}\n".format(key.ljust(6), arr))
+                    else:
+                        if key in int_key:
+                            mdf_file.append("          {}\n".format(arr))
+                        else:
+                            mdf_file.append("          {:.7e}\n".format(arr))
+
+            elif type(content) == list:
+                for index, line in enumerate(content):
+                    if index == 0:
+                        mdf_file.append("{} = #{}#\n".format(key.ljust(6), line))
+                    else:
+                        mdf_file.append("         #{}#\n".format(line))
+
+            else:
+                if type(content) == float:
+                    content = int(content) if key in int_key else content
+                    if key in int_key:
+                        line = "{} = {}".format(key.ljust(6), content)
+                    else:
+                        line = "{} = {:.7e}".format(key.ljust(6), content)
+                elif type(content) == str and '[' not in content:
+                    line = "{} = #{}#".format(key.ljust(6), content)
+                elif type(content) == str and '[' in content:
+                    line = "{} = {}".format(key.ljust(6), content)
+                elif type(content) == np.ndarray and len(content.shape) == 1:
+                    line = "{} =".format(key.ljust(6))
+                    for arr in content:
+                        arr = int(arr) if key in int_key else arr
+                        if key in int_key:
+                            line += " {}".format(arr)
+                        else:
+                            line += " {:.7e}".format(arr)
+                else:
+                    raise ValueError("invalid key")
+                mdf_file.append(line + '\n')
+
+        return mdf_file
+
+    def to_file(self, file):
+        mdf_file = self.export()
+        with open(file, 'w') as f:
+            f.writelines(mdf_file)
