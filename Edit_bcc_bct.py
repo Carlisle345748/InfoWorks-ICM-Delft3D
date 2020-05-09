@@ -67,8 +67,8 @@ down_flow = GetfLow.get_completed_flow(start, end)
 # modified bcc and bct
 
 # load bct and bcc file
-bct = Delft3DTimeSeries("dflow/river.bct")
-bcc = Delft3DTimeSeries("dflow/river.bcc")
+bct = TimeSeriesFile("dflow/river.bct")
+bcc = TimeSeriesFile("dflow/river.bcc")
 # set the new time series
 bct.set_time_series(0, reference_time, up_water_level, up_water_level)
 bct.set_time_series(1, reference_time, down_flow, down_flow)

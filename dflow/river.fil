@@ -1,17 +1,17 @@
-Domain, Checked : Yes       
+Domain, Checked : No        
      Grid                  : river.grd
      Grid enclosure        : river.enc
      Bathymetry            : river.dep
      Dry points            : none
      Thin dams             : none
 
-Time frame, Checked : Yes       
+Time frame, Checked : No        
 
 Processes, Checked : No        
 
 Initial conditions, Checked : No        
 
-Boundaries, Checked : Yes       
+Boundaries, Checked : No        
      Boundary definitions  : river.bnd
      Astronomical flow conditions : none
      Astronomical corrections : none
@@ -31,12 +31,12 @@ Physical parameters, Checked : Yes
 
 Numerical parameters, Checked : Yes       
 
-Operations, Checked : Yes       
+Operations, Checked : No        
      Discharge definitions : river.src
      Discharge data        : river.dis
      Dredging and dumping data : none
 
-Monitoring, Checked : Yes       
+Monitoring, Checked : No        
      Observation points    : river.obs
      Drogues               : none
      Cross-sections        : none

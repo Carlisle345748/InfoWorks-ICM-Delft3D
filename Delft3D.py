@@ -2,8 +2,7 @@ import configparser
 import shutil
 
 import netCDF4 as nc
-import numpy as np
-from func import nse, edit_mdf_parm, monitors, bulk_insert
+from func import nse, monitors
 
 from Delft3DFiles import *
 
@@ -23,12 +22,13 @@ class Delft3D(object):
         self.obs_folder = cf.get("General", "obs_folder")
         self.yj_set = ['1', '10', '5', '9', '8', '6', '12', '11']
 
-        self.initiate_mdf()
+        self.mdf = self.initiate_mdf()
         self.initial_level, self.initial_cond = self.initial_state()
         if self.obs_folder is not None:
             self.obs = self.get_obs()
 
     def initial_state(self):
+        """获取模型初始条件"""
         yj_initial = monitors(['1', '9', '10', '12'])
         yj_initial_data = yj_initial.get_valid_and_resample_data(
             self.start, self.end, filter_type='2', stack=True)
@@ -44,40 +44,21 @@ class Delft3D(object):
         return water_level, cond
 
     def initiate_mdf(self):
+        """初始化mdf文件，修改时间等参数"""
         self.initial_level, self.initial_cond = self.initial_state()
         Tstart = (pd.to_datetime(self.start) - pd.to_datetime(self.r_time)).total_seconds() / 60  # 模拟开始时间
         Tstop = (pd.to_datetime(self.end) - pd.to_datetime(self.r_time)).total_seconds() / 60  # 模拟结束时间
-
-        with open("dflow/river.mdf", 'r') as f:
-            mdf_data = f.readlines()
-            # 参考时间
-            mdf_data = edit_mdf_parm(mdf_data, 'Itdate', pd.to_datetime(self.r_time).strftime("%Y-%m-%d"))
-            # 模拟开始时间
-            mdf_data = edit_mdf_parm(mdf_data, 'Tstart', Tstart)
-            # 模拟结束时间
-            mdf_data = edit_mdf_parm(mdf_data, 'Tstop', Tstop)
-            # map文件时间
-            mdf_data = edit_mdf_parm(mdf_data, 'Flmap', "{:e} 10  {:e}".format(Tstart, Tstop), output=True)
-            # his文件时间
-            mdf_data = edit_mdf_parm(mdf_data, 'Flhis', "{:e} 10  {:e}".format(Tstart, Tstop), output=True)
-            # rst文件时间
-            mdf_data = edit_mdf_parm(mdf_data, 'Flpp', "{:e} 0  {:e}".format(Tstop, Tstop), output=True)
-            # 初始污染物浓度
-            mdf_data = edit_mdf_parm(mdf_data, 'C01', self.initial_cond)
-            # 初始水位
-            mdf_data = edit_mdf_parm(mdf_data, 'Zeta0', self.initial_level)
-            # u方向摩擦系数
-            mdf_data = edit_mdf_parm(mdf_data, 'Ccofu', 2.929357769349644203e-02)
-            # v方向摩擦系数
-            mdf_data = edit_mdf_parm(mdf_data, 'Ccofv', 3.331360877592268177e-02)
-            # u方向涡流粘滞系数
-            mdf_data = edit_mdf_parm(mdf_data, 'Vicouv', 2.429591317843766163e+01)
-            # v方向涡流扩散系数
-            mdf_data = edit_mdf_parm(mdf_data, 'Dicouv', 2.005919323085833383e+01)
-
-        with open("dflow/river.mdf", 'w') as f:
-            for line in mdf_data:
-                f.write(line)
+        # 读取mdf文件
+        mdf = MdfFile("dflow/river.mdf")
+        # 修改mdf文件
+        new_parm = dict(Itdate=pd.to_datetime(self.r_time).strftime("%Y-%m-%d"),
+                        Tstart=Tstart, Tstop=Tstop, Flmap=[Tstart, 10, Tstop],
+                        Flhis=[Tstart, 10, Tstop], Flpp=[Tstart, 0, Tstop],
+                        C01=self.initial_cond, Zeta0=self.initial_level,
+                        Ccofu=2.9293580e-002, Ccofv=3.3313610e-002,
+                        Vicouv=2.4295910e+001, Dicouv=2.0059190e+001)
+        mdf.set_parm(new_parm)
+        return mdf
 
     def get_obs(self):
         obs_his = nc.Dataset("obs/{}/trih-river.nc".format(self.obs_folder))  # 读取数据库
@@ -105,17 +86,11 @@ class Delft3D(object):
         :param pm: 参数
         :return: None
         """
-        with open("dflow/{}.mdf".format(self.mdf_name), "r") as file:
-            data = file.readlines()
-
         self.edit_xml(pm)
         self.edit_bat(pm)
         self.edit_dis(pm)
-        data = edit_mdf_parm(data, 'Fildis', "river_{}.dis".format(pm))
-
-        with open("dflow/{}_{}.mdf".format(self.mdf_name, pm), "w") as file:
-            for lines in data:
-                file.write(lines)
+        self.mdf.set_parm({'Fildis': "river_{}.dis".format(pm)})
+        self.mdf.to_file("dflow/{}_{}.mdf".format(self.mdf_name, pm))  # 输出mdf文件
 
     def edit_xml(self, pm):
         """
@@ -164,7 +139,7 @@ class Delft3D(object):
         :param pm: 参数
         :return: None
         """
-        dis_data = Delft3DTimeSeries(filename="dflow/{}.dis".format(self.dis_name))
+        dis_data = TimeSeriesFile(filename="dflow/{}.dis".format(self.dis_name))
 
         pollutions = pd.read_csv("icm_to_delft3d/Link_{}_ds_cond.csv".format(pm))
         inflows = pd.read_csv("icm_to_delft3d/Link_{}_ds_flow.csv".format(pm))
