@@ -20,7 +20,7 @@ Boundaries, Checked : No
      Time series flow conditions : river.bct
      Transport conditions  : river.bcc
 
-Physical parameters, Checked : No        
+Physical parameters, Checked : Yes       
      Roughness coefficients : none
      Hor. viscosity/diffusivity : none
      Heat flux model data  : none
@@ -29,7 +29,7 @@ Physical parameters, Checked : No
      Uniform wind data     : none
      Space varying wind data : none
 
-Numerical parameters, Checked : No        
+Numerical parameters, Checked : Yes       
 
 Operations, Checked : No        
      Discharge definitions : river.src
